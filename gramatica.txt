@@ -1,0 +1,105 @@
+--palabras reservadas
+	<modifier> ::= public | protected | private | abstract | static | final | transient | volatile
+	<result type> ::= void
+	<integral type> ::= byte | short | int | long | char
+	<primitive type> ::= boolean
+	<floating-point type> ::= float | double
+	<end instruction> ::= ;
+	<reserved word>	::= throw | catch | return | break | finally | try | continue |  default | super | this | new | byte | class | interface | package | const 
+				goto | implements | extends | import | instanceof | native |synchronized |throws 
+	<iteratives label> ::= while | for | do 
+	<null literal> ::= NULL | null
+	<conditional label> ::= if | switch | case | else 
+--identificadores
+	<identifier> consists of strings that must start with a letter - including underscore (_) and dollar sign ($) - followed by any number of letters and digits.
+--digitos
+	<digits> ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 
+	<number> ::= [+-]?<digits>+
+--floating-point literal
+	<floating-point literal> ::= <digits> . <digits>? E? f?
+--Operadores
+	<parethesis open> ::= (
+	<parethesis close> ::= )
+	<bracket open> ::= [
+	<bracket close> ::= ]
+	<curly bracket open> ::= {
+	<curly bracket close> ::= }
+	<arithmetic operator> ::= + | - | * | / | % | ^
+	<unary operator> -- | ++ | !
+	<equality operator> == | !=
+	<relational operator> >= | <= | > | <
+	<conditional operator> && | || 
+	<assignment operator> ::=   = | *= | /= | %= | += | -= | <<= | >>= | >>>= | &= | ^= | |=
+	<bitwise operator> ::=  & | | ~
+	<bit shif operator> ::= >> | << | >>>
+
+	
+string characters  
+	<string character>
+
+
+palabrasReservadas= ["modifier"=>"public|protected....", "result type" => "void"]
+digits= ["digit"=>"[0-9]", "number" => "[+-]?[0-9]+\.[0-9]+", "floating"
+operadores= [""]
+
+token = "4.66"
+
+isLetra = re.compile("[a-zA-Z]")
+isIdentificador = re.compile("[_$]")
+isNumber = re.compile("[0-9]")
+isString = re.compile(" ["] ")
+
+if(isLetra.fullmatch(token[0])){
+	//Analizar si es una palabra reservada
+	resultado = analizarMapa("palabrasReservadas")
+	if(resultado != ""){
+		//Analizar si es un identificador			
+		patron = re.compile("([a-zA-Z][0-9]?)+")
+		if(patron.fullmatch(token)){
+			resultado = llave
+		}
+		
+	}
+}else if( isIdentificador.fullmatch(token[0]){
+	//Analizar si es un identificador
+	resultado = ""
+	patron = re.compile("[_$]?([a-zA-Z][0-9]?)+|[_$][0-9]+")
+	if(patron.fullmatch(token)){
+		resultado = "identificador"
+	}else{
+		if(token == "_")
+			resultado = "underscore"
+		else if (token == "$"){
+			resultado = "dollar sign"
+		}
+	}
+}else if( isNumber.fullmatch(token[0]){
+	//analizar si es un numero
+	resultado = analizarMapa("digits")
+}else if ( isString.fullmatch(token[0]) ){
+	//Puede ser un string characters
+	resultado = ""
+	patron = re.compile('"[\w\s]*"')
+	if(patron.fullmatch(token)){
+		resultado = "Character string"
+	}
+}else{
+	//Analizador si es un operador
+
+	resultado = analizarMapa("operadores")
+	
+}
+
+analizarMapa(mapaName){
+	resultado = ""
+	for(llave, valor in mapaName){
+		patron = re.compile(valor)
+		if(patron.fullmatch(token)){
+			resultado = llave
+			break
+		}
+	}
+	return resultado
+}
+
+
