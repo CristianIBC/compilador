@@ -18,10 +18,10 @@ class Aplicacion:
         F_font = ('bold', 15)
         self.ventana1.title("Analizador lexico")
         self.agregar_menu()          
-        self.patronNumeros = re.compile("[+-]?([0-9]*[.])?[0-9]+")
-        self.patronCadenas = re.compile('"[\w\s]*"')                
+        #self.patronNumeros = re.compile("[+-]?([0-9]*[.])?[0-9]+")
+        #self.patronCadenas = re.compile('"[\w\s]*"')                
         self.patronComentarios = re.compile("\/\*[\w\s]*\*\/|\/\/[\w\s]*")
-        self.tokensEspeciales = ['?','{', '}','[', ']',';','(',')','++','--','<<=','>>=','>>>=','<<','>>>','>>','&=','^|','|=','==', '>=','=>','!=','&&', '||','+=','-=','*=','/=','%=','+','*','-','^','<', '>','=','#','$','%','&','¡','!','|',':', '/','\\',',','~','`','¿']
+        #self.tokensEspeciales = ['?','{', '}','[', ']',';','(',')','++','--','<<=','>>=','>>>=','<<','>>>','>>','&=','^|','|=','==', '>=','=>','!=','&&', '||','+=','-=','*=','/=','%=','+','*','-','^','<', '>','=','#','$','%','&','¡','!','|',':', '/','\\',',','~','`','¿']
         self.scrolledtext1= st.ScrolledText(self.ventana1,width=100, height=30, font=F_font)
         self.scrolledtext1.grid(column=0, row=0, padx=10,pady=10)
         self.scrolledtext1.insert("1.0", "Seleccione un archivo en la pestaña ARCHIVO")
@@ -41,39 +41,57 @@ class Aplicacion:
 
     def abrir(self):
         nombrearch = fd.askopenfilename(initialdir="c:", title="Seleccione archivo", filetypes=(("txt files", "*.txt"),("todos los archivos", "*.*")))    
-        index = 0        
+           
         if nombrearch!='':
             archi1 = open(nombrearch,"r", encoding="utf-8")
             self.contenido = archi1.read()
             archi1.close()
             self.result = []
             self.tablaSimbolos = {}
-            self.scrolledtext1.delete("1.0", tk.END)
-            self.ignorarCadenas()
+            self.scrolledtext1.delete("1.0", tk.END)        
             self.ignorarComentarios()
-            palabras = self.contenido.split()
-            longitud = len(palabras)                 
-            for i in range(longitud):
-                token=Token()
-                if len(palabras[i]) >0:
-                    palabraAnalizada = self.analizarPalabra(palabras[i])
-                    if isinstance(palabraAnalizada, list):                      
-                        for palabra in reversed(palabraAnalizada):
-                            token=Token()
-                            if palabra != "":    
-                                token.setValues(palabra, self.etiquetarToken(palabra))                    
-                                self.result.insert(i, token)
-                                print(token.token)
+            #CODIGO PARA SEPARAR TOKENS Y ETIQUETARLOS
+            indice = 0    
+            
+            numRegex = re.compile("[0-9]");
+            letraRegex = re.compile("[a-zA-Z]");
+            leyendoCadena = False
+            token = ""
+            while indice < len(self.contenido):
+                actual = self.contenido[indice]
+                if(indice < len(self.contenido)-1):
+                    siguiente = self.contenido[indice+1]
+                else:
+                    siguiente = "\n"
+                print("actual ",actual)
+                print("siguiente ",siguiente)
+                if actual != ' ' and not leyendoCadena:
+                    token += actual
+                    print("token ", token)
+                    if (actual == '+' or actual == '-' and numRegex.fullmatch(siguiente)) or numRegex.fullmatch(siguiente) or (actual == '.' and numRegex.fullmatch(siguiente)):
+                        if siguiente == '.' or numRegex.fullmatch(siguiente):
+                            indice+=1
+                        else:
+                            print("token final ",token)
+                            self.agregarALista(token)
+                            token = ""
+                            indice+=1;
                     else:
-                        if palabraAnalizada != '':                    
-                            token.setValues(palabraAnalizada, self.etiquetarToken(palabraAnalizada))               
-                            self.result.append(token)
-                            print(token.token)
-                else:                    
-                    token.setValues(palabras[i], self.etiquetarToken(palabras[i]))
-                    self.result.append(token)   
-                    print(token.token)
+                        if letraRegex.fullmatch(siguiente) or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n':
+                            print("token final ",token)
+                            self.agregarALista(token)
+                            token = ""
+                            indice+=1;
+                        else:
+                            indice+=1
+                            
                 
+
+
+
+
+                
+            #IMPRIMIR EN PANTALLA EL RESULTADO
             for simbolo, descripcion in self.tablaSimbolos.items():
                 self.scrolledtext1.insert("1.0", simbolo +" \t--> "+descripcion+"\n")
             self.scrolledtext1.insert("1.0", "\n----TABLA DE SIMBOLOS----\n")
@@ -81,7 +99,12 @@ class Aplicacion:
                 self.scrolledtext1.insert("1.0", objeto.mostrar())
                 #print(objeto.token,"\t\t-->",objeto.descripcion,"\n")
             self.scrolledtext1.insert("1.0", "----TOKENS----\n")           
-            
+    def agregarALista(self,token):
+        print("token en metodo ", token)
+        objectoToken = Token()
+        objectoToken.token = token;
+        objectoToken.descripcion = self.etiquetarToken(token);
+        self.result.append(objectoToken)
     def ignorarComentarios(self):
         comentario = "x"
         try:
@@ -94,48 +117,6 @@ class Aplicacion:
         except AttributeError:
             pass
     
-    def ignorarCadenas(self):
-        cadena = "x"
-        try:
-            while cadena != "":
-                cadena = re.search(self.patronCadenas, self.contenido).group(0)   
-                token = Token()        
-                token.setValues(cadena, self.etiquetarToken(cadena))         
-                self.result.append(token)
-                a = re.split(cadena, self.contenido)                   
-                self.contenido = " ".join(a)                    
-        except AttributeError:
-            pass
-
-    def analizarPalabra (self, palabra):                
-        res=[]  
-        for token in self.tokensEspeciales:                    
-            ocurrencias = palabra.count(token)
-            if ocurrencias > 0:    
-                for i in range(ocurrencias):                                                           
-                    res.append(token)
-                palabraDividida = palabra.split(token)    
-                for subPalabra in palabraDividida:
-                    if len(subPalabra)>1:    
-                        if isinstance(subPalabra, str):
-                            isNumber = self.patronNumeros.fullmatch(subPalabra)                                                                     
-                        if not isNumber:
-                            palabraAnalizada =self.analizarPalabra(subPalabra)
-                            if isinstance(palabraAnalizada,list):
-                                for item in palabraAnalizada:
-                                    res.append(item)
-                            elif palabraAnalizada != "":
-                                res.append(palabraAnalizada)
-                        else:
-                            res.append(subPalabra)
-                    else:
-                        res.append(subPalabra)
-                break
-
-        if len(res) >0:        
-            return res
-        else:     
-            return palabra
     def etiquetarToken(self, token):
         palabrasReservadas= {'modifier': 'public|protected|private|abstract|static|final|transit|volatile',
                              'result type':'void',
@@ -164,7 +145,7 @@ class Aplicacion:
                     'bit shift operator':'[<][<]|[>]{2,3}'}
         digitos={'digit':'[0-9]','number':'[+-]?[0-9]+'}
         
-        floatingPointLiteral={'floatingPointLiteral':'[0-9]*[.][0-9]+[E]?[f]?'}
+        floatingPointLiteral={'floatingPointLiteral':'[+-]?[0-9]*[.][0-9]+[E]?[f]?'}
         resultado = ""
         isLetra = re.compile("[a-zA-Z]")
         isIdentificador = re.compile("[_$]")
@@ -189,7 +170,7 @@ class Aplicacion:
                     resultado = "Underscore"
                 elif (token == "$"):
                     resultado = "Dollar sign"
-        elif isNumber.fullmatch(token[0]):
+        elif isNumber.fullmatch(token[0]) or ((token[0] == '+' or token[0] == '-') and isNumber.fullmatch(token[1])) :
             #analizar si es un numero
             resultado = self.identificarCategoria(token, digitos)  
             if(resultado == ""):

@@ -103,3 +103,51 @@ analizarMapa(mapaName){
 }
 
 
+
+char actual, siguiente;
+int indice = 0
+leyendoCadena = false
+token = ""
+limpirComentarios()
+while indice < len(contenido) {
+	actual = contenido[indice]		
+	siguiente = contenido[indice+1]
+	print("actual ", actual)
+	print("siguiente ", siguiente)
+	if(actual != " " && !leyendoCadena)
+		token += actual
+		si actual es numero o (es punto y siguiente es un numero)
+			si siguiente es punto o numero entonces, indice++
+			si no, print(token); token = ""; indice++
+		sino, si actual es "
+			indice++
+			leyendoCadena = true
+		sino, si actual es letra | _ | $
+			si siguiente es letra | numero | _ 
+				indice++
+			else 						
+				print(token); token = ""; indice++
+		sino
+			si siguiente es letra | _ | $ | numero | " | ' ' | \n
+				objectoToken = Token()
+				objectoToken.token = token;
+				objectoToken.descripcion = etiquetarToken(token);
+				result.append(objectoToken)
+				 token =""; indice++
+			sino
+				indice++
+	else if(leyendoCadena){
+		if(actual == " ){
+			token+= actual; print(token); token = ""; leyendoCadena = false; indice++;
+		}else{
+			token+= actual;	token = "hola
+			indice++;
+		}				
+	}
+	else{
+		indice++
+	}
+}		
+
+AL FINAL:
+	NUMEROS CON SIGNO

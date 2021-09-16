@@ -1,13 +1,1 @@
-public class Nombre_Clase
-{
-     public static void main (String args[])
-     {
-         
-        //bloque de sentencias
-        /*
-            Hola soy un comentario
-            multilinea
-        */       
-        int x="Hola soy una cadena";
-     }
-}
++4.55
