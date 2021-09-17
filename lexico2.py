@@ -18,10 +18,6 @@ class Aplicacion:
         F_font = ('bold', 15)
         self.ventana1.title("Analizador lexico")
         self.agregar_menu()          
-        #self.patronNumeros = re.compile("[+-]?([0-9]*[.])?[0-9]+")
-        #self.patronCadenas = re.compile('"[\w\s]*"')                
-        self.patronComentarios = re.compile("\/\*[\w\s]*\*\/|\/\/[\w\s]*")
-        #self.tokensEspeciales = ['?','{', '}','[', ']',';','(',')','++','--','<<=','>>=','>>>=','<<','>>>','>>','&=','^|','|=','==', '>=','=>','!=','&&', '||','+=','-=','*=','/=','%=','+','*','-','^','<', '>','=','#','$','%','&','¡','!','|',':', '/','\\',',','~','`','¿']
         self.scrolledtext1= st.ScrolledText(self.ventana1,width=100, height=30, font=F_font)
         self.scrolledtext1.grid(column=0, row=0, padx=10,pady=10)
         self.scrolledtext1.insert("1.0", "Seleccione un archivo en la pestaña ARCHIVO")
@@ -49,43 +45,97 @@ class Aplicacion:
             self.result = []
             self.tablaSimbolos = {}
             self.scrolledtext1.delete("1.0", tk.END)        
-            self.ignorarComentarios()
             #CODIGO PARA SEPARAR TOKENS Y ETIQUETARLOS
             indice = 0    
             
             numRegex = re.compile("[0-9]");
             letraRegex = re.compile("[a-zA-Z]");
             leyendoCadena = False
+            leyendoComentario = False
+            leyendoComentarioMul = False
             token = ""
             while indice < len(self.contenido):
                 actual = self.contenido[indice]
                 if(indice < len(self.contenido)-1):
                     siguiente = self.contenido[indice+1]
                 else:
-                    siguiente = "\n"
-                print("actual ",actual)
-                print("siguiente ",siguiente)
-                if actual != ' ' and not leyendoCadena:
+                    siguiente = "\n"        
+                if actual != ' ' and not leyendoCadena and actual !="\n" and not leyendoComentario and not leyendoComentarioMul:
                     token += actual
-                    print("token ", token)
-                    if (actual == '+' or actual == '-' and numRegex.fullmatch(siguiente)) or numRegex.fullmatch(siguiente) or (actual == '.' and numRegex.fullmatch(siguiente)):
-                        if siguiente == '.' or numRegex.fullmatch(siguiente):
+                    #print("token ", token)
+                    if (actual == '.' or numRegex.fullmatch(actual) or actual == "+" or actual == "-"): #(actual == '+' or actual == '-' and numRegex.fullmatch(siguiente)) or numRegex.fullmatch(siguiente) or (actual == '.' and numRegex.fullmatch(siguiente)):
+                        #print("entre al else de numero")
+                        if siguiente == '.' or numRegex.fullmatch(siguiente) or siguiente == "f":
                             indice+=1
+                        elif actual == '-' and siguiente == '>':
+                            indice+=1                        
                         else:
-                            print("token final ",token)
+                            #print("token final ",token)
                             self.agregarALista(token)
                             token = ""
-                            indice+=1;
+                            indice+=1
+                    
+                    elif(actual=='\"' or actual =='\''):
+                        #print("entre al else de cadena")
+                        indice+=1
+                        leyendoCadena=True
+                    elif(actual=='/' and siguiente == '/'):
+                        #print("entre al else de comentario")
+                        indice+=1
+                        leyendoComentario=True
+                    elif(actual=='/' and siguiente == '*'):
+                        #print("entre al else de comentario multiple")
+                        indice+=1
+                        leyendoComentarioMul=True
+                    elif(letraRegex.fullmatch(actual) or actual=='_' or actual=='$'):
+                            #print("entre al else de identificador")
+                            if letraRegex.fullmatch(siguiente) or numRegex.fullmatch(siguiente) or siguiente == '_':                                
+                                indice+=1
+                            else:
+                                self.agregarALista(token)
+                                token = ""
+                                indice+=1
                     else:
-                        if letraRegex.fullmatch(siguiente) or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n':
-                            print("token final ",token)
+                        #print("entre al else de simbolo")
+                        if letraRegex.fullmatch(siguiente) or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';':
+                            #print("token final ",token)
                             self.agregarALista(token)
                             token = ""
-                            indice+=1;
+                            indice+=1
                         else:
                             indice+=1
-                            
                 
+                elif leyendoCadena:
+                        if actual == '\"' or actual =='\'':
+                            token+=actual
+                            leyendoCadena=False                            
+                            indice+=1
+                            self.agregarALista(token)
+                            token=""
+                        else:
+                            token+=actual
+                            indice+=1
+                elif leyendoComentario:
+                    if actual == '\n':
+                        leyendoComentario=False                            
+                        indice+=1 
+                        #print("encontre un comentario:", token)   
+                        token=""
+                    else:
+                        token+=actual
+                        indice+=1
+                elif leyendoComentarioMul:
+                    if actual == '*' and siguiente == '/':
+                        leyendoComentarioMul=False                            
+                        indice+=2
+                        #print("encontre un comentario multiple:", token)   
+                        token=""
+                    else:
+                        token+=actual
+                        indice+=1
+                else:
+                    indice+=1
+            
 
 
 
@@ -100,7 +150,7 @@ class Aplicacion:
                 #print(objeto.token,"\t\t-->",objeto.descripcion,"\n")
             self.scrolledtext1.insert("1.0", "----TOKENS----\n")           
     def agregarALista(self,token):
-        print("token en metodo ", token)
+        #print("token en metodo ", token)
         objectoToken = Token()
         objectoToken.token = token;
         objectoToken.descripcion = self.etiquetarToken(token);
@@ -108,10 +158,13 @@ class Aplicacion:
     def ignorarComentarios(self):
         comentario = "x"
         try:
-            while comentario != "":                    
+            while comentario != "":    
+                #print(self.patronComentarios)                
                 comentario = re.search(self.patronComentarios, self.contenido).group(0)                                
+                #print("antes ",comentario)
                 comentario = comentario.replace("/*", "\/\*")
                 comentario = comentario.replace("*/", "\*\/")           
+                #print("despues ",comentario)
                 a = re.split(comentario, self.contenido)
                 self.contenido = " ".join(a)                 
         except AttributeError:
@@ -123,7 +176,7 @@ class Aplicacion:
                              'integral type':'byte|short|int|long|char',
                              'primitive type':'boolean',
                              'floating-point type':'float|double',
-                             'String type':'String',                             
+                             'string class':'String',                             
                              'reserved word':'throw|catch|return|break|finally|try|continue|default|super|this|new|byte|class|interface|package|const|goto|implements|extends|import|instanceof|native|synchronized|throws',
                              'iteratives label':'while|for|do',
                              'null literal':'NULL|null',
@@ -132,10 +185,15 @@ class Aplicacion:
                     'parethesis close':'[)]',
                     'bracket open':'[\[]',
                     'bracket close':'[\]]',
+                    'brackets':'\[\]',
+                    'parethesis':'\(\)',
+                    'curly brackets':'{}',
                     'end instruction':';',
+                    'dot':'\.',
                     'curly bracket open':'[{]',
                     'curly bracket close':'[}]',
                     'arithmetic operator':'[+]|[-]|[*]|[\/]|[%]|[\^]',
+                    'lambda operator': '->',
                     'unary operator':'[-][-]|[+][+]|[!]',
                     'equality operator':'[=][=]|[!][=]',
                     'relational operator': '[>][=]|[<][=]|[>]|[<]',
@@ -145,7 +203,7 @@ class Aplicacion:
                     'bit shift operator':'[<][<]|[>]{2,3}'}
         digitos={'digit':'[0-9]','number':'[+-]?[0-9]+'}
         
-        floatingPointLiteral={'floatingPointLiteral':'[+-]?[0-9]*[.][0-9]+[E]?[f]?'}
+        floatingPointLiteral={'floatingPointLiteral':'[+-]?[0-9]*\.[0-9]+[E]?[f]?'}
         resultado = ""
         isLetra = re.compile("[a-zA-Z]")
         isIdentificador = re.compile("[_$]")
@@ -157,29 +215,33 @@ class Aplicacion:
                 #Analizar si es un identificador			
                 patron = re.compile("([a-zA-Z][0-9]?_?)+")
                 if(patron.fullmatch(token)):
-                    resultado = "Identifier"
-                    self.tablaSimbolos[token] = "Identifier"
+                    resultado = "identifier"
+                    self.tablaSimbolos[token] = resultado
         elif isIdentificador.fullmatch(token[0]):
             #Analizar si es un identificador        
             patron = re.compile("[_$]?([a-zA-Z][0-9]?_?)+|[_$][0-9]+")
             if(patron.fullmatch(token)):
-                resultado = "Identifier"
-                self.tablaSimbolos[token] = "Identifier"
+                resultado = "identifier"
+                self.tablaSimbolos[token] = resultado
             else:
                 if(token == "_"):
-                    resultado = "Underscore"
+                    resultado = "underscore"
                 elif (token == "$"):
-                    resultado = "Dollar sign"
-        elif isNumber.fullmatch(token[0]) or ((token[0] == '+' or token[0] == '-') and isNumber.fullmatch(token[1])) :
+                    resultado = "dollar sign"
+
+        elif isNumber.fullmatch(token[0]) or ((token[0] == '+' or token[0] == '-' or token[0] == '.')) :
             #analizar si es un numero
             resultado = self.identificarCategoria(token, digitos)  
             if(resultado == ""):
                 resultado = self.identificarCategoria(token,floatingPointLiteral)
-        elif token[0]== "\"":
+            if(resultado == ""):
+                resultado = self.identificarCategoria(token,operadores)
+        elif token[0]== "\"" or token[0] =='\'':
             #Analizar si es un string        
-            patron = re.compile('"[\w\s]*"')
+            print(token, " token en etiquetado")
+            patron = re.compile('[\'\"][\w\s\W]*[\'\"]')
             if(patron.fullmatch(token)):
-                resultado = "Character string"
+                resultado = "character string"
         else:
             #analizar si es un operador
             resultado = self.identificarCategoria(token, operadores) 
