@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import scrolledtext as st
 import sys
 import re
+import time
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
 
@@ -47,7 +48,7 @@ class Aplicacion:
             self.scrolledtext1.delete("1.0", tk.END)        
             #CODIGO PARA SEPARAR TOKENS Y ETIQUETARLOS
             indice = 0    
-            
+            inicio = time.time()
             numRegex = re.compile("[0-9]");
             letraRegex = re.compile("[a-zA-Z]");
             leyendoCadena = False
@@ -60,7 +61,7 @@ class Aplicacion:
                     siguiente = self.contenido[indice+1]
                 else:
                     siguiente = "\n"        
-                if actual != ' ' and not leyendoCadena and actual !="\n" and not leyendoComentario and not leyendoComentarioMul:
+                if actual != ' ' and not leyendoCadena and actual !="\n" and not leyendoComentario and not leyendoComentarioMul and actual != "\t":
                     token += actual
                     #print("token ", token)
                     if (actual == '.' or numRegex.fullmatch(actual) or actual == "+" or actual == "-"): #(actual == '+' or actual == '-' and numRegex.fullmatch(siguiente)) or numRegex.fullmatch(siguiente) or (actual == '.' and numRegex.fullmatch(siguiente)):
@@ -96,8 +97,8 @@ class Aplicacion:
                                 token = ""
                                 indice+=1
                     else:
-                        #print("entre al else de simbolo")
-                        if letraRegex.fullmatch(siguiente) or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';':
+                        
+                        if letraRegex.fullmatch(siguiente) or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]":
                             #print("token final ",token)
                             self.agregarALista(token)
                             token = ""
@@ -139,16 +140,19 @@ class Aplicacion:
 
 
 
-
+            fin = time.time()
                 
             #IMPRIMIR EN PANTALLA EL RESULTADO
+            self.scrolledtext1.insert("1.0", "\n----Tiempo consumido----\n"+ str((fin-inicio)))
             for simbolo, descripcion in self.tablaSimbolos.items():
                 self.scrolledtext1.insert("1.0", simbolo +" \t--> "+descripcion+"\n")
-            self.scrolledtext1.insert("1.0", "\n----TABLA DE SIMBOLOS----\n")
+            self.scrolledtext1.insert("1.0", "\n----TABLA DE SIMBOLOS----\n",'simbolos')
             for objeto in reversed(self.result):
                 self.scrolledtext1.insert("1.0", objeto.mostrar())
                 #print(objeto.token,"\t\t-->",objeto.descripcion,"\n")
-            self.scrolledtext1.insert("1.0", "----TOKENS----\n")           
+            self.scrolledtext1.insert("1.0", "----TOKENS----\n",'tokens')
+            self.scrolledtext1.tag_config('tokens', foreground='green')           
+            self.scrolledtext1.tag_config('simbolos', foreground='green') 
     def agregarALista(self,token):
         #print("token en metodo ", token)
         objectoToken = Token()
@@ -190,6 +194,7 @@ class Aplicacion:
                     'curly brackets':'{}',
                     'end instruction':';',
                     'dot':'\.',
+                    'coma':',',
                     'curly bracket open':'[{]',
                     'curly bracket close':'[}]',
                     'arithmetic operator':'[+]|[-]|[*]|[\/]|[%]|[\^]',
@@ -237,8 +242,7 @@ class Aplicacion:
             if(resultado == ""):
                 resultado = self.identificarCategoria(token,operadores)
         elif token[0]== "\"" or token[0] =='\'':
-            #Analizar si es un string        
-            print(token, " token en etiquetado")
+            #Analizar si es un string                    
             patron = re.compile('[\'\"][\w\s\W]*[\'\"]')
             if(patron.fullmatch(token)):
                 resultado = "character string"
