@@ -1,15 +1,33 @@
-import System.hola
-public class HelloWo_3rld {
+import System.scanner
+public class $HelloWo_3rld {
 
-    public static void main(String[] args) {
-
-        
+    public static void main(String[a] args) {
+	/* Soy
+	un comentario
+	multilinea */
+	
+	        
         Scanner reader = new Scanner(System.in);
         System.out.print("Enter a number: ");
 
-        
+        //Hola soy un comentario 
         int _number = reader.nextInt();
-
+	float j = 3 + 6.7f;
         System.out.println("You entered: " + number);
+
+	{
+		int x = 0x100;
+	}
+	{
+		int x = 0x100;
+	}
+ 	Clase<int> cadena = new Clase<int>(53);
+
+if(x!=10)
+&&
+&
+int a = 070;
+
+
     }
 }

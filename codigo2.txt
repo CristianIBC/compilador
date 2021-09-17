@@ -1,0 +1,15 @@
+x>10?"r":3;0x0FFFF002
+0x0F0A52545
+0b4424
+0b010101
+print("cadena ", token);int mexico=3;regex = '[+-]?[0-9]*\.[0-9]+[E]?[f]?'
+0x054566
+if(x==3)
+x=3
+x>>>=3
+3E-3
+3E344
+5.6E-10
+...arreglo
+if(x>y){print("jeje");}
+€

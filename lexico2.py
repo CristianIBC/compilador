@@ -65,14 +65,34 @@ class Aplicacion:
                 else:
                     siguiente = "\n"  
 
-                if leyendoIdentificador:              
-                    if letraRegex.fullmatch(actual) or numRegex.fullmatch(actual) or actual == '_':                                
-                        token+=actual
+                if leyendoIdentificador:       
+                    #print("token en id ", token)
+                    #print("actual ", actual)
+                    #print("siguiente ", siguiente)
+                    if(actual == '-'):
+                        token+=actual 
                         indice+=1
-                    if not letraRegex.fullmatch(siguiente) and not numRegex.fullmatch(siguiente) and not siguiente == '_':
+                    elif (not letraRegex.fullmatch(actual) and not numRegex.fullmatch(actual) and not actual == '_') or actual == ' ' or actual == '\n':
                         self.agregarALista(token)
                         leyendoIdentificador= False
-                        token = ""               
+                        token = ""
+                    else:
+                        token+=actual 
+                        indice+=1
+                    # if letraRegex.fullmatch(actual) or numRegex.fullmatch(actual) or actual == '_' or actual == '-':                                
+                    #     token+=actual
+                    #     if not letraRegex.fullmatch(siguiente) and not numRegex.fullmatch(siguiente) and not siguiente == '_' or siguiente == ' ' or siguiente == '\n':
+                    #         self.agregarALista(token)
+                    #         leyendoIdentificador= False
+                    #         token = ""
+                    #         indice+=1
+                    #     else:                        
+                    #         indice+=1                                                              
+                    # else:
+                    #     self.agregarALista(token)
+                    #     leyendoIdentificador= False
+                    #     token = ""       
+                    #     indice+=1          
                 elif leyendoCadena:
                         if actual == '\"' or actual =='\'':
                             token+=actual
@@ -104,9 +124,11 @@ class Aplicacion:
                 elif actual != ' ' and actual !="\n"  and actual != "\t":
                     token += actual
                     #print("token ", token)
+                    #print("actual ", actual)
+                    #print("siguiente ", siguiente)
                     if (actual == '.' or numRegex.fullmatch(actual) or actual == "+" or actual == "-"): #(actual == '+' or actual == '-' and numRegex.fullmatch(siguiente)) or numRegex.fullmatch(siguiente) or (actual == '.' and numRegex.fullmatch(siguiente)):
                         #print("entre al else de numero")
-                        if siguiente == '.' or numRegex.fullmatch(siguiente) or siguiente == "f":
+                        if siguiente == '.' or numRegex.fullmatch(siguiente) or siguiente == "f" or siguiente=="x" or siguiente=="X" or siguiente=="b" or siguiente=="E" or siguiente=="e":
                             indice+=1
                         elif actual == '-' and siguiente == '>':
                             indice+=1                        
@@ -129,7 +151,7 @@ class Aplicacion:
                         indice+=1
                         leyendoComentarioMul=True
                     elif(letraRegex.fullmatch(actual) or actual=='_' or actual=='$'):
-                            #print("entre al else de identificador")                         
+                        #print("entre al else de identificador")                         
                         indice+=1
                         leyendoIdentificador = True
                     # elif (actual == "@" and letraRegex.fullmatch(siguiente)):
@@ -137,15 +159,14 @@ class Aplicacion:
                     else:
                         if(actual == "{"): self.scope+=1;
                         if(actual == "}"): self.scope-=1;
-                        if letraRegex.fullmatch(siguiente) or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]" or (actual == '>' and (siguiente != '=' and siguiente != '>')) or (actual == "<" and (siguiente != "=" and siguiente != "<")):
+                        #print("token en simbolos ", token)
+                        if letraRegex.fullmatch(siguiente) or actual==";" or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]" or (actual == '>' and siguiente == '(') or (actual == "<" and siguiente == ">" ):
                             #print("token final ",token)
                             self.agregarALista(token)
                             token = ""
                             indice+=1
                         else:
-                            indice+=1
-                
-                
+                            indice+=1            
                 else:
                     indice+=1
             
@@ -184,6 +205,7 @@ class Aplicacion:
                              'reserved word':'throw|catch|return|break|finally|try|continue|default|super|this|new|byte|class|interface|package|const|goto|implements|extends|import|instanceof|native|synchronized|throws',
                              'iteratives label':'while|for|do',
                              'null literal':'NULL|null',
+                             'boolean literal':'true|false',
                              'conditional label':'if|switch|case|else'
                              }
         operadores={'parethesis open':'[(]',
@@ -197,6 +219,8 @@ class Aplicacion:
                     'dot':'\.',
                     'coma':',',
                     'colon':':',
+                    '...':'\.\.\.',
+                    'question mark':'\?',
                     'curly bracket open':'[{]',
                     'curly bracket close':'[}]',
                     'arithmetic operator':'[+]|[-]|[*]|[\/]|[%]|[\^]',
@@ -208,9 +232,9 @@ class Aplicacion:
                     'assignment operator':'[=]|[*][=]|[\/][=]|[%][=]|[+][=]|[-][=]|[<][<][=]|[>][>][=]|[>][>][>][=]|[&][=]|[\^][=]|[|][=]',
                     'bitwise operator':'[&]|[|][~]',
                     'bit shift operator':'[<][<]|[>]{2,3}'}
-        digitos={'digit':'[0-9]','number':'[+-]?[0-9]+'}
+        digitos={'digit':'[0-9]',"octal number": '0[0-7]{1,8}', 'number':'[+-]?[0-9]+([Ee][+-]?[0-9]+)?',"binary number": '0b[0-1]{1,8}',"hexadecimal number": '0[xX][0-9a-fA-F]{1,8}'}
         
-        floatingPointLiteral={'floatingPointLiteral':'[+-]?[0-9]*\.[0-9]+[E]?[f]?'}
+        floatingPointLiteral={'floatingPointLiteral':'[+-]?[0-9]*\.[0-9]+([Ee][+-]?[0-9]+)?[f]?'}
         resultado = ""
         isLetra = re.compile("[a-zA-Z]")
         isIdentificador = re.compile("[_$]")
@@ -228,7 +252,6 @@ class Aplicacion:
                         self.tablaSimbolos[token] = info
         elif isIdentificador.fullmatch(token[0]):
             #Analizar si es un identificador   
-            print("cadena ", token)     
             patron = re.compile("[_$]?(\w)+")
             if(patron.fullmatch(token)):
                 resultado = "identifier"
@@ -243,6 +266,7 @@ class Aplicacion:
 
         elif isNumber.fullmatch(token[0]) or ((token[0] == '+' or token[0] == '-' or token[0] == '.')) :
             #analizar si es un numero
+            #print("cadena ", token)     
             resultado = self.identificarCategoria(token, digitos)  
             if(resultado == ""):
                 resultado = self.identificarCategoria(token,floatingPointLiteral)
@@ -257,6 +281,8 @@ class Aplicacion:
             #analizar si es un operador
             resultado = self.identificarCategoria(token, operadores) 
 
+        if resultado == "":
+            resultado = "Token no encontrado"
         return resultado
     def identificarCategoria(self, token, mapa):
         resultado = ""
