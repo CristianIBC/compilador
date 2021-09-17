@@ -5,6 +5,7 @@ import re
 import time
 from tkinter import filedialog as fd
 from tkinter import messagebox as mb
+from tkinter.constants import N
 
 class Token:
     def setValues(self,token,descripcion):
@@ -48,10 +49,12 @@ class Aplicacion:
             self.scrolledtext1.delete("1.0", tk.END)        
             #CODIGO PARA SEPARAR TOKENS Y ETIQUETARLOS
             indice = 0    
+            self.scope = 1
             inicio = time.time()
             numRegex = re.compile("[0-9]");
             letraRegex = re.compile("[a-zA-Z]");
             leyendoCadena = False
+            leyendoIdentificador = False
             leyendoComentario = False
             leyendoComentarioMul = False
             token = ""
@@ -60,52 +63,16 @@ class Aplicacion:
                 if(indice < len(self.contenido)-1):
                     siguiente = self.contenido[indice+1]
                 else:
-                    siguiente = "\n"        
-                if actual != ' ' and not leyendoCadena and actual !="\n" and not leyendoComentario and not leyendoComentarioMul and actual != "\t":
-                    token += actual
-                    #print("token ", token)
-                    if (actual == '.' or numRegex.fullmatch(actual) or actual == "+" or actual == "-"): #(actual == '+' or actual == '-' and numRegex.fullmatch(siguiente)) or numRegex.fullmatch(siguiente) or (actual == '.' and numRegex.fullmatch(siguiente)):
-                        #print("entre al else de numero")
-                        if siguiente == '.' or numRegex.fullmatch(siguiente) or siguiente == "f":
-                            indice+=1
-                        elif actual == '-' and siguiente == '>':
-                            indice+=1                        
-                        else:
-                            #print("token final ",token)
-                            self.agregarALista(token)
-                            token = ""
-                            indice+=1
-                    
-                    elif(actual=='\"' or actual =='\''):
-                        #print("entre al else de cadena")
+                    siguiente = "\n"  
+
+                if leyendoIdentificador:              
+                    if letraRegex.fullmatch(actual) or numRegex.fullmatch(actual) or actual == '_':                                
+                        token+=actual
                         indice+=1
-                        leyendoCadena=True
-                    elif(actual=='/' and siguiente == '/'):
-                        #print("entre al else de comentario")
-                        indice+=1
-                        leyendoComentario=True
-                    elif(actual=='/' and siguiente == '*'):
-                        #print("entre al else de comentario multiple")
-                        indice+=1
-                        leyendoComentarioMul=True
-                    elif(letraRegex.fullmatch(actual) or actual=='_' or actual=='$'):
-                            #print("entre al else de identificador")
-                            if letraRegex.fullmatch(siguiente) or numRegex.fullmatch(siguiente) or siguiente == '_':                                
-                                indice+=1
-                            else:
-                                self.agregarALista(token)
-                                token = ""
-                                indice+=1
-                    else:
-                        
-                        if letraRegex.fullmatch(siguiente) or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]":
-                            #print("token final ",token)
-                            self.agregarALista(token)
-                            token = ""
-                            indice+=1
-                        else:
-                            indice+=1
-                
+                    if not letraRegex.fullmatch(siguiente) and not numRegex.fullmatch(siguiente) and not siguiente == '_':
+                        self.agregarALista(token)
+                        leyendoIdentificador= False
+                        token = ""               
                 elif leyendoCadena:
                         if actual == '\"' or actual =='\'':
                             token+=actual
@@ -134,6 +101,51 @@ class Aplicacion:
                     else:
                         token+=actual
                         indice+=1
+                elif actual != ' ' and actual !="\n"  and actual != "\t":
+                    token += actual
+                    #print("token ", token)
+                    if (actual == '.' or numRegex.fullmatch(actual) or actual == "+" or actual == "-"): #(actual == '+' or actual == '-' and numRegex.fullmatch(siguiente)) or numRegex.fullmatch(siguiente) or (actual == '.' and numRegex.fullmatch(siguiente)):
+                        #print("entre al else de numero")
+                        if siguiente == '.' or numRegex.fullmatch(siguiente) or siguiente == "f":
+                            indice+=1
+                        elif actual == '-' and siguiente == '>':
+                            indice+=1                        
+                        else:
+                            #print("token final ",token)
+                            self.agregarALista(token)
+                            token = ""
+                            indice+=1
+                    
+                    elif(actual=='\"' or actual =='\''):
+                        #print("entre al else de cadena")
+                        indice+=1
+                        leyendoCadena=True
+                    elif(actual=='/' and siguiente == '/'):
+                        #print("entre al else de comentario")
+                        indice+=1
+                        leyendoComentario=True
+                    elif(actual=='/' and siguiente == '*'):
+                        #print("entre al else de comentario multiple")
+                        indice+=1
+                        leyendoComentarioMul=True
+                    elif(letraRegex.fullmatch(actual) or actual=='_' or actual=='$'):
+                            #print("entre al else de identificador")                         
+                        indice+=1
+                        leyendoIdentificador = True
+                    # elif (actual == "@" and letraRegex.fullmatch(siguiente)):
+
+                    else:
+                        if(actual == "{"): self.scope+=1;
+                        if(actual == "}"): self.scope-=1;
+                        if letraRegex.fullmatch(siguiente) or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]" or (actual == '>' and (siguiente != '=' and siguiente != '>')) or (actual == "<" and (siguiente != "=" and siguiente != "<")):
+                            #print("token final ",token)
+                            self.agregarALista(token)
+                            token = ""
+                            indice+=1
+                        else:
+                            indice+=1
+                
+                
                 else:
                     indice+=1
             
@@ -141,38 +153,26 @@ class Aplicacion:
 
 
             fin = time.time()
-                
+            
             #IMPRIMIR EN PANTALLA EL RESULTADO
-            self.scrolledtext1.insert("1.0", "\n----Tiempo consumido----\n"+ str((fin-inicio)))
-            for simbolo, descripcion in self.tablaSimbolos.items():
-                self.scrolledtext1.insert("1.0", simbolo +" \t--> "+descripcion+"\n")
+            self.scrolledtext1.insert("1.0", str((fin-inicio)))
+            self.scrolledtext1.insert("1.0", "\n----TIEMPO CONSUMIDO----\n", 'tiempo')
+            for simbolo, descripcion in reversed(self.tablaSimbolos.items()):
+                self.scrolledtext1.insert("1.0", simbolo +" \t--> "+str(descripcion)+"\n")
             self.scrolledtext1.insert("1.0", "\n----TABLA DE SIMBOLOS----\n",'simbolos')
             for objeto in reversed(self.result):
                 self.scrolledtext1.insert("1.0", objeto.mostrar())
                 #print(objeto.token,"\t\t-->",objeto.descripcion,"\n")
-            self.scrolledtext1.insert("1.0", "----TOKENS----\n",'tokens')
-            self.scrolledtext1.tag_config('tokens', foreground='green')           
-            self.scrolledtext1.tag_config('simbolos', foreground='green') 
+            self.scrolledtext1.insert("1.0", "\n----TOKENS----\n",'tokens')
+            self.scrolledtext1.tag_config('tokens',background="lightblue", foreground='blue', justify="center")           
+            self.scrolledtext1.tag_config('simbolos', background="lightblue", foreground='blue', justify="center") 
+            self.scrolledtext1.tag_config('tiempo', background="lightblue", foreground='blue', justify="center") 
     def agregarALista(self,token):
         #print("token en metodo ", token)
         objectoToken = Token()
         objectoToken.token = token;
         objectoToken.descripcion = self.etiquetarToken(token);
         self.result.append(objectoToken)
-    def ignorarComentarios(self):
-        comentario = "x"
-        try:
-            while comentario != "":    
-                #print(self.patronComentarios)                
-                comentario = re.search(self.patronComentarios, self.contenido).group(0)                                
-                #print("antes ",comentario)
-                comentario = comentario.replace("/*", "\/\*")
-                comentario = comentario.replace("*/", "\*\/")           
-                #print("despues ",comentario)
-                a = re.split(comentario, self.contenido)
-                self.contenido = " ".join(a)                 
-        except AttributeError:
-            pass
     
     def etiquetarToken(self, token):
         palabrasReservadas= {'modifier': 'public|protected|private|abstract|static|final|transit|volatile',
@@ -184,7 +184,8 @@ class Aplicacion:
                              'reserved word':'throw|catch|return|break|finally|try|continue|default|super|this|new|byte|class|interface|package|const|goto|implements|extends|import|instanceof|native|synchronized|throws',
                              'iteratives label':'while|for|do',
                              'null literal':'NULL|null',
-                             'conditional label':'if|switch|case|else'}
+                             'conditional label':'if|switch|case|else'
+                             }
         operadores={'parethesis open':'[(]',
                     'parethesis close':'[)]',
                     'bracket open':'[\[]',
@@ -195,6 +196,7 @@ class Aplicacion:
                     'end instruction':';',
                     'dot':'\.',
                     'coma':',',
+                    'colon':':',
                     'curly bracket open':'[{]',
                     'curly bracket close':'[}]',
                     'arithmetic operator':'[+]|[-]|[*]|[\/]|[%]|[\^]',
@@ -218,16 +220,21 @@ class Aplicacion:
             resultado = self.identificarCategoria(token, palabrasReservadas)
             if(resultado == ""):
                 #Analizar si es un identificador			
-                patron = re.compile("([a-zA-Z][0-9]?_?)+")
+                patron = re.compile("(\w)+")
                 if(patron.fullmatch(token)):
                     resultado = "identifier"
-                    self.tablaSimbolos[token] = resultado
+                    info = {'type ':resultado, 'scope ':self.scope}
+                    if self.tablaSimbolos.get(token) is None:
+                        self.tablaSimbolos[token] = info
         elif isIdentificador.fullmatch(token[0]):
-            #Analizar si es un identificador        
-            patron = re.compile("[_$]?([a-zA-Z][0-9]?_?)+|[_$][0-9]+")
+            #Analizar si es un identificador   
+            print("cadena ", token)     
+            patron = re.compile("[_$]?(\w)+")
             if(patron.fullmatch(token)):
                 resultado = "identifier"
-                self.tablaSimbolos[token] = resultado
+                info = {'type ':resultado, 'scope ':self.scope}
+                if self.tablaSimbolos.get(token) is None:
+                    self.tablaSimbolos[token] = info
             else:
                 if(token == "_"):
                     resultado = "underscore"
