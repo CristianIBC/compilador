@@ -1,0 +1,27 @@
+keywords -> { var, and, break, dec, do, elif, else, false, if, inc, not, or, return, true, while }
+identificadores -> { ^[a-zA-Z](\w)* }
+
+operators
+    op-comp -> {==, <>}
+    op-rel -> {>, <, >=, <=}
+    op-add -> {+, -}
+    op-mul -> {*, /, %}
+    op-unary -> {not}
+
+literals
+    lit-bool -> {true, false}
+    lit-str -> { ".*"}
+    lit-int -> { [0-9]+ }
+    lit-char -> { \\n, \r, \t, \\, \', \" , \\u[0-9a-fA-F]{6} }
+
+Other
+    parethesis-open -> (
+    parethesis-close -> )
+    end-instruction -> ;
+    coma -> ,
+    curly-bracket-open -> {
+    curly-bracket-close -> }
+    backet-open -> [
+    backet-close -> ]
+
+

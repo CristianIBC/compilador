@@ -5,7 +5,7 @@ public class $HelloWo_3rld {
 	/* Soy
 	un comentario
 	multilinea */
-	
+	void llenar(){print("Hola soy un codigo en linea");}
 	        
         Scanner reader = new Scanner(System.in);
         System.out.print("Enter a number: ");
