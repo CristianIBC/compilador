@@ -1,4 +1,3 @@
-
 from os import error
 import tkinter as tk
 from tkinter import scrolledtext as st
@@ -42,8 +41,8 @@ class Aplicacion:
         sys.exit(0)
 
     def abrir(self):
-        #nombrearch = fd.askopenfilename(initialdir="c:", title="Seleccione archivo", filetypes=(("txt files", "*.txt"),("todos los archivos", "*.*")))    
-        nombrearch="C:\\Users\\crist\\Documents\\Noveno\\Compiladores\\T1\\compilador\\proyecto2\\codiguito.txt"  
+        nombrearch = fd.askopenfilename(initialdir="c:", title="Seleccione archivo", filetypes=(("txt files", "*.txt"),("todos los archivos", "*.*")))    
+      #  nombrearch="C:\\Users\\crist\\Documents\\Noveno\\Compiladores\\T1\\compilador\\proyecto2\\codiguito.txt"  
         if nombrearch!='':
             archi1 = open(nombrearch,"r", encoding="utf-8")
             self.contenido = archi1.read()
@@ -112,13 +111,26 @@ class Aplicacion:
                     token+=actual
                     if actual == "\n":
                         self.error(lineaActual, indice, "Se esperaba \'")
-                    elif actual == '\'' and token[len(token)-2] != "\\":                   
+                    elif actual == '\'' and token[len(token)-2] != "\\":
+                                         
                         leyendoChar=False                           
                         indice+=1
                         self.agregarALista(token)
                         token=""
-                    else:                       
-                        indice+=1                    
+                    else:
+                        if len(token)>3:
+                            if token[len(token)-3] == "\\" and token[len(token)-2]!="u":                        
+                               
+                                leyendoChar=False                           
+                                indice+=1
+                                self.agregarALista(token)
+                                token=""
+                            else:
+                                indice+=1
+                        else:
+                            indice+=1
+                                    
+                                                 
                 elif leyendoComentario:
                     if actual == '\n':
                         leyendoComentario=False                            
@@ -188,7 +200,7 @@ class Aplicacion:
                         if(actual == "{"): self.scope+=1
                         if(actual == "}"): self.scope-=1
                         #print("token en simbolos ", token)
-                        if numSimbols ==1 or letraRegex.fullmatch(siguiente) or actual==";" or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]" or (actual == '>' and siguiente == '('):
+                        if numSimbols ==1 or letraRegex.fullmatch(siguiente) or actual==";" or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente=='\'' or siguiente=='-' or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]" or (actual == '>' and siguiente == '('):
                             #print("token final ",token)
                             self.agregarALista(token)
                             token = ""
@@ -295,7 +307,7 @@ class Aplicacion:
                     if token[2] == "t" or token[2] == "n" or token[2] == "\\" or token[2] == "r" or token[2] == "\"" or token[2] == "\'":
                         resultado = "lit-char"
                     if token[2] == "u":
-                        patron = re.compile('[\'][\\][u]([0-9a-fA-F]){6}[\']')
+                        patron = re.compile('[\'][\\\\][u]([0-9a-fA-F]){6}[\']')
                         
                         if(patron.fullmatch(token)):
                             resultado = "lit-char"                                                      
