@@ -1,4 +1,22 @@
+-- Converts num to a string with its binary representation.
 main() {
-    prints("hello, \"world\"\n");
-    return 42;
+    var str, option;
+    do {
+        prints("Input a string: ");
+        str = reads();
+        prints("The string \"");
+        prints(str);
+        prints("\" is ");
+        if (not is_palindrome(str)) {
+            prints("NOT ");
+        }
+        prints("a palindrome.\n");
+        prints("Check another string? ");
+        option = reads();
+        if (size(option) == 0) {
+            option = '\t';
+        } else {
+            option = get(option, 0);
+        }
+    } while (option == '\u123456' or option == '\u1234567');
 }

@@ -25,7 +25,9 @@ class Aplicacion:
         self.scrolledtext1= st.ScrolledText(self.ventana1,width=100, height=30, font=F_font)
         self.scrolledtext1.grid(column=0, row=0, padx=10,pady=10)
         self.scrolledtext1.insert("1.0", "Seleccione un archivo en la pestaña ARCHIVO")
+        self.abrir()
         self.ventana1.mainloop()
+       
     
     def agregar_menu(self):
         menubar1 = tk.Menu(self.ventana1)
@@ -40,8 +42,8 @@ class Aplicacion:
         sys.exit(0)
 
     def abrir(self):
-        nombrearch = fd.askopenfilename(initialdir="c:", title="Seleccione archivo", filetypes=(("txt files", "*.txt"),("todos los archivos", "*.*")))    
-           
+        #nombrearch = fd.askopenfilename(initialdir="c:", title="Seleccione archivo", filetypes=(("txt files", "*.txt"),("todos los archivos", "*.*")))    
+        nombrearch="C:\\Users\\crist\\Documents\\Noveno\\Compiladores\\T1\\compilador\\proyecto2\\codiguito.txt"  
         if nombrearch!='':
             archi1 = open(nombrearch,"r", encoding="utf-8")
             self.contenido = archi1.read()
@@ -57,11 +59,12 @@ class Aplicacion:
             numRegex = re.compile("[0-9]");
             letraRegex = re.compile("[a-zA-Z]");
             leyendoCadena = False
+            leyendoChar=False
             leyendoIdentificador = False
             leyendoComentario = False
             leyendoComentarioMul = False
             token = ""
-            
+            numSimbols = 0
             while indice < len(self.contenido):
                 actual = self.contenido[indice]
                 if(indice < len(self.contenido)-1):
@@ -105,6 +108,17 @@ class Aplicacion:
                             print("Encontre  un caracter de UNICODE")
                             leyendoCharEspecial = False
                     #_____________________________________
+                elif leyendoChar:            
+                    token+=actual
+                    if actual == "\n":
+                        self.error(lineaActual, indice, "Se esperaba \'")
+                    elif actual == '\'' and token[len(token)-2] != "\\":                   
+                        leyendoChar=False                           
+                        indice+=1
+                        self.agregarALista(token)
+                        token=""
+                    else:                       
+                        indice+=1                    
                 elif leyendoComentario:
                     if actual == '\n':
                         leyendoComentario=False                            
@@ -125,10 +139,10 @@ class Aplicacion:
                         indice+=1
                 elif actual != ' ' and actual !="\n"  and actual != "\t":
                     token += actual
-                    #print("token ", token)
-                    #print("actual ", actual)
-                    #print("siguiente ", siguiente)                    
-                    if actual == '-' or numRegex.fullmatch(actual):
+                    # print("token ", token)
+                    # print("actual ", actual)
+                    # print("siguiente ", siguiente)                    
+                    if (actual == '-' and siguiente != '-') or numRegex.fullmatch(actual):
                         #print("entre al else de numero")
                         if numRegex.fullmatch(siguiente):
                             indice+=1                      
@@ -142,8 +156,12 @@ class Aplicacion:
                         #print("entre al else de cadena")
                         indice+=1
                         leyendoCadena=True
+                    elif actual=='\'':
+                        #print("entre al else de cadena")
+                        indice+=1
+                        leyendoChar=True
                     elif(actual=='-' and siguiente == '-'):
-                        #print("entre al else de comentario")
+                        print("entre al else de comentario")
                         indice+=1
                         leyendoComentario=True
                     elif(actual=='(' and siguiente == '*'):
@@ -166,16 +184,18 @@ class Aplicacion:
                     # elif (actual == "@" and letraRegex.fullmatch(siguiente)):
 
                     else:                     
-
+                    
                         if(actual == "{"): self.scope+=1
                         if(actual == "}"): self.scope-=1
                         #print("token en simbolos ", token)
-                        if letraRegex.fullmatch(siguiente) or actual==";" or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]" or (actual == '>' and siguiente == '('):
+                        if numSimbols ==1 or letraRegex.fullmatch(siguiente) or actual==";" or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]" or (actual == '>' and siguiente == '('):
                             #print("token final ",token)
                             self.agregarALista(token)
                             token = ""
+                            numSimbols=0
                             indice+=1
                         else:
+                            numSimbols+=1
                             indice+=1            
                 else:
                     if actual == "\n": 
@@ -260,11 +280,31 @@ class Aplicacion:
             patron = re.compile('[\"][\w\s\W]*[\"]')
             if(patron.fullmatch(token)):
                 resultado = "lit-str"
+        elif token[0]== "\'": #'\t'
+            #Analizar si es un lt-char
+            print("HOLA SOY UN  CHAR ", token)
+            print("HOLA SOY UN  CHAR LEN ", len(token))
+            if(len(token) == 3):
+                print("entre")
+                patron = re.compile('[\'].[\']')
+                if(patron.fullmatch(token)):
+                    print("entre")
+                    resultado = "lit-char"
+            elif len(token) > 3:                
+                if token[1] == "\\":
+                    if token[2] == "t" or token[2] == "n" or token[2] == "\\" or token[2] == "r" or token[2] == "\"" or token[2] == "\'":
+                        resultado = "lit-char"
+                    if token[2] == "u":
+                        patron = re.compile('[\'][\\][u]([0-9a-fA-F]){6}[\']')
+                        
+                        if(patron.fullmatch(token)):
+                            resultado = "lit-char"                                                      
         else:
             #analizar si es un operador
             resultado = self.identificarCategoria(token, operadores) 
 
-   
+        if(resultado ==""):
+            resultado = "No encontrado"
         return resultado
         
     def identificarCategoria(self, token, mapa):
