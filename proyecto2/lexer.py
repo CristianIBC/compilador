@@ -295,7 +295,7 @@ class Aplicacion:
                     if token[2] == "t" or token[2] == "n" or token[2] == "\\" or token[2] == "r" or token[2] == "\"" or token[2] == "\'":
                         resultado = "lit-char"
                     if token[2] == "u":
-                        patron = re.compile('[\'][\\][u]([0-9a-fA-F]){6}[\']')
+                        patron = re.compile('[\'][\\\\][u]([0-9a-fA-F]){6}[\']')
                         
                         if(patron.fullmatch(token)):
                             resultado = "lit-char"                                                      
