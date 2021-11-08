@@ -1,7 +1,9 @@
 from os import error
 import tkinter as tk
-from tkinter import scrolledtext as st
+from tkinter import *
+import tkinter.scrolledtext as ScrolledTex
 import sys
+from anytree import Node, RenderTree
 import re
 import time
 from tkinter import filedialog as fd
@@ -16,7 +18,7 @@ class Token:
         self.linea = linea
         self.posicion = posicion
     def mostrar(self):
-         return (str(self.token) +" \t--> "+ self.descripcion +" \t--> "+ str(self.num) + "\n")
+         return (str(self.token) +" \t "+ self.descripcion +"\t\t\t\t"+ str(self.num) + "\n")
 class Aplicacion:    
     ID = 0
     VAR = 1
@@ -59,7 +61,7 @@ class Aplicacion:
         F_font = ('bold', 15)
         self.ventana1.title("Analizador lexico")
         self.agregar_menu()          
-        self.scrolledtext1= st.ScrolledText(self.ventana1,width=100, height=30, font=F_font)
+        self.scrolledtext1= ScrolledTex.ScrolledText(self.ventana1,width=100, height=30, font=F_font)
         self.scrolledtext1.grid(column=0, row=0, padx=10,pady=10)
         self.scrolledtext1.insert("1.0", "Seleccione un archivo en la pestaña ARCHIVO")
         self.abrir()
@@ -96,14 +98,16 @@ class Aplicacion:
             fin = time.time()
 
             #IMPRIMIR EN PANTALLA EL RESULTADO
-            self.scrolledtext1.insert("1.0", str((fin-inicio)))
+            self.scrolledtext1.insert("1.0", str((fin-inicio))+"\n")
             self.scrolledtext1.insert("1.0", "\n----TIEMPO CONSUMIDO----\n", 'tiempo')
             for simbolo, descripcion in reversed(self.tablaSimbolos.items()):
                 self.scrolledtext1.insert("1.0", simbolo +" \t--> "+str(descripcion)+"\n")
             self.scrolledtext1.insert("1.0", "\n----TABLA DE SIMBOLOS----\n",'simbolos')
             for objeto in reversed(self.result):
                 self.scrolledtext1.insert("1.0", objeto.mostrar())               
+            self.scrolledtext1.insert("1.0", "Token\tDescripcion\t\t\tNumero asociado\n","titulos")
             self.scrolledtext1.insert("1.0", "\n----TOKENS----\n",'tokens')
+            self.scrolledtext1.tag_config('titulos',background="lightgray", foreground='blue')           
             self.scrolledtext1.tag_config('tokens',background="lightblue", foreground='blue', justify="center")           
             self.scrolledtext1.tag_config('simbolos', background="lightblue", foreground='blue', justify="center") 
             self.scrolledtext1.tag_config('tiempo', background="lightblue", foreground='blue', justify="center") 
@@ -260,7 +264,7 @@ class Aplicacion:
                     if(actual == "{"): self.scope+=1
                     
                     #print("token en simbolos ", token)
-                    if numSimbols ==1 or letraRegex.fullmatch(siguiente) or actual==";" or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente=='\'' or siguiente=='-' or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == ")" or actual == "}" or actual == "]" or (actual == '>' and siguiente == '('):
+                    if numSimbols ==1 or letraRegex.fullmatch(siguiente) or actual==";" or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente=='\'' or siguiente=='-' or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == '('  or actual == '{'  or actual == '['  or actual == ")" or actual == "}" or actual == "]" or siguiente == ')'or siguiente == ']'or siguiente == '}' or (actual == '>' and siguiente == '('):
                         #print("token final ",token)
                         self.agregarALista(token, self.lineaActual, indice+len(token))
                         token = ""
@@ -284,6 +288,7 @@ class Aplicacion:
         objectoToken.num = num
         objectoToken.posicion = posicion
         objectoToken.linea = linea
+        print(token)
         self.result.append(objectoToken)
 
     def etiquetarToken(self, token):
@@ -393,31 +398,276 @@ class Aplicacion:
         return resultado, num
     
     def parser(self, tokens):
+       # print("holi")
        self.tokensParser = tokens
-       self.indexToken = -1      
-       self.tokenActual = self.move()
-
+       self.indexToken = -1    
+       root = Node("Program")  
+       self.move()
+       self.Program(root)
+       self.scrolledtext1.insert("1.0", "\n----ARBOL SINTACTICO----\n", 'arbol')
+       for pre, fill, node in RenderTree(root):
+           print("%s%s" % (pre, node.name))
+           self.scrolledtext1.insert(END, "%s%s" % (pre, node.name) +"\n")
+       self.scrolledtext1.tag_config('arbol', background="lightblue", foreground='blue', justify="center") 
     def move(self):
         self.indexToken+=1
-        token = self.tokensParser[self.indexToken] if self.indexToken < len(self.tokensParser) else -1
-        if self.token == -1:
-            print("Se termino de leer la cadena")
-        return token
+        self.tokenActual = self.tokensParser[self.indexToken] if self.indexToken < len(self.tokensParser) else self.PESO
+        if self.tokenActual == self.PESO:
+            print("Se termino de leer la cadena")        
        
-    def consume(self, token):
-        if token.num == self.tokenActual.num:
-            print("token consumido ", token.token)
+    def consume(self, token, parent):
+        if token == self.tokenActual.num:
+            print("token consumido ",  self.tokenActual.token)
+            Node("token: "+str( self.tokenActual.token) + "   ("+ self.tokenActual.descripcion+ ")" , parent= parent)
             self.move()
         else:
-            self.errorParser(token.token,token.linea, token.posicion )
+            self.errorParser([token], 4)
             
     def error(self, linea, posicion, mensaje):
         print("Se encontró un error en la linea ", linea, ", posicion ", posicion, ".\nMensaje: ", mensaje)
 
 
-    def errorParser(self, tokensEsperados, linea, posicion):
-        elementos = ",".join(tokensEsperados)
-        print("Error en la linea ", linea, "posicion", posicion)
+    def errorParser(self, tokensEsperados):
+        elementos = "";
+        for i in range(len(tokensEsperados)):
+            if i == 0:
+                elementos +=str(tokensEsperados[i])
+            else:    
+                elementos+= ","+str(tokensEsperados[i])
+        print("Error en la linea ", self.tokenActual.linea, "posicion", self.tokenActual.posicion)
         print("Se esperaba alugno de los siguientes elementos", elementos)
         exit(0)
+
+    def Program(self, parent):
+        if self.tokenActual.num == self.VAR:            
+            self.DefList(parent)
+        elif self.tokenActual.num == self.ID:
+            self.DefList(parent)
+        elif self.tokenActual == self.PESO:
+            self.DefList(parent)
+        else:
+            self.errorParser([self.VAR, self.ID, self.PESO])
+            
+    def DefList(self, parent):
+        parent = Node("DefList", parent = parent)
+
+        if self.tokenActual.num == self.VAR:            
+            self.DefListP(parent)
+        elif self.tokenActual.num == self.ID:
+            self.DefListP(parent)
+        elif self.tokenActual == self.PESO:
+            self.DefListP(parent)
+        else:
+            self.errorParser([self.VAR, self.ID, self.PESO])
+    
+    def DefListP(self,parent):
+        parent = Node("DefListP", parent = parent)
+        if self.tokenActual == self.PESO:   
+            Node("ε", parent)         
+            return
+        elif self.tokenActual.num == self.ID:
+            self.Def(parent)
+            self.DefListP(parent)
+        elif self.tokenActual.num == self.VAR:
+            self.Def(parent)
+            self.DefListP(parent)
+        else:
+            self.errorParser([self.VAR, self.ID, self.PESO])
+    def Def(self,parent):
+        parent = Node("Def", parent = parent)
+        if self.tokenActual.num == self.VAR:
+            self.VarDef(parent)
+        elif self.tokenActual.num == self.ID:
+            self.FunDef(parent)
+        else:
+            self.errorParser([self.VAR, self.ID])
+    def VarDef(self,parent):
+        parent = Node("VarDef", parent = parent)
+        if self.tokenActual.num == self.VAR:
+            self.consume(self.VAR, parent)
+            self.VarList(parent)
+            self.consume(self.PUNTOYCOMA,parent)
+
+        else:
+            self.errorParser([self.VAR])
+    def FunDef(self, parent):
+        parent = Node("FunDef", parent = parent)
+        if self.tokenActual.num == self.ID:
+            self.consume(self.ID, parent)
+            self.consume(self.PAR_IZQ, parent)
+            self.ParamList(parent)
+            self.consume(self.PAR_DER, parent)
+            self.consume(self.LLAVE_IZQ, parent)
+            self.VarDefList(parent)
+            self.StmtList(parent)
+            self.consume(self.LLAVE_DER, parent)
+        else:
+            self.errorParser([self.ID])
+    def VarList(self, parent):
+        parent = Node("VarList", parent = parent)
+        if self.tokenActual.num == self.ID:
+            self.IdList(parent)
+        else:
+            self.errorParser([self.ID])
+    def IdList(self, parent):
+        parent = Node("IdList", parent = parent)
+        if self.tokenActual.num == self.ID:
+            self.consume(self.ID, parent)
+            self.IdListCount(parent)
+        else:
+            self.errorParser([self.ID])
+    def IdListCount(self, parent):
+        parent = Node("IdListCont", parent = parent)
+        if self.tokenActual.num == self.PUNTOYCOMA:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.COMA:
+            self.consume(self.COMA, parent)
+            self.consume(self.ID, parent)
+            self.IdListCount(parent)
+        elif self.tokenActual.num == self.PAR_DER:
+            Node("ε", parent)   
+            return
+        else:
+            self.errorParser([self.PUNTOYCOMA, self.COMA, self.PAR_DER])
+
+    def ParamList(self, parent):
+        parent = Node("ParamList", parent = parent)
+        if self.tokenActual.num == self.ID:
+            self.IdList(parent)
+        elif self.tokenActual.num == self.PAR_DER:
+            Node("ε", parent)   
+            return
+        else:
+            self.errorParser([self.ID, self.PAR_DER])
+    def VarDefList(self, parent):
+        parent = Node("VarDefList", parent = parent)
+        if self.tokenActual.num == self.VAR:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.PUNTOYCOMA:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.ID:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.LLAVE_DER:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.INC:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.DEC:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.IF:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.WHILE:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.DO:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.BREAK:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.RETURN:
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.PESO:
+            self.VarDefListP(parent)
+        else:
+            self.errorParser([self.ID, self.LLAVE_DER, self.VAR,self.INC,self.DEC,self.IF,self.WHILE,self.DO,self.BREAK, self.RETURN, self.PESO, self.PUNTOYCOMA])
+    def VarDefListP(self, parent):
+        parent = Node("VarDefListP", parent = parent)
+        if self.tokenActual.num == self.VAR:
+            self.VarDef(parent)
+            self.VarDefListP(parent)
+        elif self.tokenActual.num == self.PUNTOYCOMA:
+            Node("ε", parent)   
+            return        
+        elif self.tokenActual.num == self.ID:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.LLAVE_DER:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.INC:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.DEC:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.IF:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.WHILE:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.DO:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.BREAK:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.RETURN:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.PESO:
+            Node("ε", parent)   
+            return
+        else:
+            self.errorParser([self.ID, self.LLAVE_DER, self.VAR,self.INC,self.DEC,self.IF,self.WHILE,self.DO,self.BREAK, self.RETURN, self.PESO, self.PUNTOYCOMA])
+    def StmtList(self, parent):
+        parent = Node("StmtList", parent = parent)
+        if self.tokenActual.num == self.PUNTOYCOMA:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.ID:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.LLAVE_DER:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.INC:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.DEC:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.IF:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.WHILE:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.DO:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.BREAK:
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.RETURN:
+            self.StmtListP(parent)
+        else:
+            self.errorParser([self.ID, self.LLAVE_DER,self.INC,self.DEC,self.IF,self.WHILE,self.DO,self.BREAK, self.RETURN, self.PUNTOYCOMA])
+    
+    def StmtListP(self, parent):
+        parent = Node("StmtListP", parent = parent)
+        if self.tokenActual.num == self.PUNTOYCOMA:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.ID:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.LLAVE_DER:
+            Node("ε", parent)   
+            return
+        elif self.tokenActual.num == self.INC:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.DEC:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.IF:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.WHILE:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.DO:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.BREAK:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        elif self.tokenActual.num == self.RETURN:
+            self.Stmt(parent)
+            self.StmtListP(parent)
+        else:
+            self.errorParser([self.ID, self.LLAVE_DER,self.INC,self.DEC,self.IF,self.WHILE,self.DO,self.BREAK, self.RETURN, self.PUNTOYCOMA])
+        
+    def Stmt(self, parent):
+        return
 aplicacion1 = Aplicacion()
