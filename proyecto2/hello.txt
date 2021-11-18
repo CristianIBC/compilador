@@ -1,0 +1,16 @@
+(* File: 001_hello.drac
+   The classical "hello, world" program.
+   (C) 2021 Ariel Ortiz, ITESM CEM.
+*)
+var y;
+main(u,y) {
+	var xs;	
+	var oy;
+	xs =2;	
+	xs = 4;
+	xs = true;
+	
+    prints("hello, world\n");
+    return 42;
+}
+var z;

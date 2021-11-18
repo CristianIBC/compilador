@@ -305,7 +305,7 @@ class Aplicacion:
                 else:                     
                 
                     if(actual == "{"): self.scope+=1
-                    if(actual == "}"): self.scope-=1
+                    if(actual == "}"): self.scope+=1
                     #print("token en simbolos ", token)
                     if numSimbols ==1 or letraRegex.fullmatch(siguiente) or actual==";" or siguiente== '_' or numRegex.fullmatch(siguiente) or siguiente=='\'' or siguiente=='-' or siguiente == '\"' or siguiente == ' ' or siguiente == '\n' or siguiente == ';' or actual == '('  or actual == '{'  or actual == '['  or actual == ")" or actual == "}" or actual == "]" or siguiente == ')'or siguiente == ']'or siguiente == '}' or (actual == '>' and siguiente == '('):
                         #print("token final ",token)
@@ -452,13 +452,8 @@ class Aplicacion:
        self.Program(self.root)
        self.scrolledtext1.insert("1.0", "\n----ARBOL SINTACTICO----\n", 'arbol')
        for pre, fill, node in RenderTree(self.root):
-            if isinstance(node.name, list):
-                print("%s%s" % (pre, node.name[0]))
-                self.scrolledtext1.insert(END, "%s%s" % (pre, node.name[0]+ "   -> ("+node.name[1]+")") +"\n")
-            else:
-                print("%s%s" % (pre, node.name))
-                self.scrolledtext1.insert(END, "%s%s" % (pre, node.name) +"\n")
-            
+           #print("%s%s" % (pre, node.name))
+           self.scrolledtext1.insert(END, "%s%s" % (pre, node.name) +"\n")
        self.scrolledtext1.tag_config('arbol', background="lightblue", foreground='blue', justify="center") 
     def move(self):
         self.indexToken+=1
@@ -478,8 +473,7 @@ class Aplicacion:
     def consume(self, token, parent):
         if token == self.tokenActual.num:
             print("token consumido ",  self.tokenActual.token)
-            #Node("token: "+str( self.tokenActual.token) + "   ("+ self.tokenActual.descripcion+ ")" , parent= parent)
-            Node([str( self.tokenActual.token),self.tokenActual.descripcion ] , parent= parent)
+            Node("token: "+str( self.tokenActual.token) + "   ("+ self.tokenActual.descripcion+ ")" , parent= parent)
             self.move()
         else:
             self.errorParser([token], 4)
@@ -519,42 +513,26 @@ class Aplicacion:
                 if self.tablaFunciones[i]['id'] == token:
                     self.tablaFunciones[i]['return'] = tipo
 
-    def buscarInfo(self, id):
-        candidatos= []        
-        print("token en buscar info",id.token)
-        for simbolo in self.tablaVariables:     
-            if simbolo['id'] == id.token and simbolo['isAlive'] == True:
-                candidatos.append(simbolo) 
-        if len(candidatos) == 1:
-            return candidatos[0]
-        else:
-            candidatos.sort(reverse=True, key=self.byScope)
-            return candidatos[0]
-
-    def byScope(self,e):
-        return e['scope']    
-    def variableDeclarada(self, token):      
+    def variableDeclarada(self, token):        
         id = None
-        candidatos= []        
         print("token ",token.token)
         print("token ",token.scope)
-        for simbolo in self.tablaVariables:     
-            if simbolo['id'] == token.token and simbolo['isAlive'] == True:
-                candidatos.append(simbolo)            
-        if len(candidatos) == 0:
+        for simbolo in self.tablaVariables:            
+            if simbolo['id'] == token.token:
+                id = simbolo
+                break
+        print(id)
+        if id is None:
             return False
-        elif len(candidatos) == 1:
-            id = candidatos[0]
-        elif len(candidatos) > 1:
-            candidatos.sort(reverse=True, key=self.byScope)
-            print(candidatos)
-            id = candidatos[0]
-        print("---",id)
-        if token.scope == id['scope']:
-            return True
-        return False
+        else:
 
-    def funcionDeclarada(self,token):          
+            if id['inFunction'] == True and id['scope'] == token.scope:
+                return True            
+            elif  id['inFunction'] == False and token.scope >= id['scope']:
+                return True
+            else:                
+                return False
+    def funcionDeclarada(self, token):
         id = None
         for simbolo in self.tablaFunciones:
             print(simbolo)
@@ -567,12 +545,6 @@ class Aplicacion:
             return False
         else:
             return True
-
-    def matarVariables(self, scope):
-        print("matar", scope)
-        for i in range(len(self.tablaVariables)):
-            if self.tablaVariables[i]['scope'] == scope:
-                self.tablaVariables[i]['isAlive'] = False
 
     def Program(self, parent):
         if self.tokenActual.num == self.VAR:            
@@ -635,18 +607,18 @@ class Aplicacion:
             numIds=self.ParamList(parent)            
             self.consume(self.PAR_DER, parent)
             self.consume(self.LLAVE_IZQ, parent)
-            info = {'id':id.token,'numParam':numIds,'return':None, 'scope':id.scope, 'isAlive':True}
-            #self.tablaFunciones.append(info)
-            if not self.funcionDeclarada(id):
-                self.tablaFunciones.append(info)
-            else:                
-                self.errorVariable(id.token, id.linea, id.posicion, declarada=True)
+            info = {'id':id.token,'numParam':numIds,'return':None, 'scope':id.scope}
+            self.tablaFunciones.append(info)
+            # if not self.funcionDeclarada(id):
+            #     self.tablaFunciones.append(info)
+            # else:                
+            #     self.errorVariable(id.token, id.linea, id.posicion, declarada=True)
             self.VarDefList(parent)
             tipo = self.StmtList(parent)   
             if tipo is None:
-                tipo = 'lit-int'                     
+                tipo = 'lit-int'         
             self.asignarTipoFun(id.token,tipo)
-            self.matarVariables(id.scope+1)
+            #self.eliminarVariables(self.tokenActual.scope)
             self.consume(self.LLAVE_DER, parent)
             
 
@@ -660,17 +632,16 @@ class Aplicacion:
             self.errorParser([self.ID])
     def IdList(self, parent,  isParam=False, inFuncion = False):
         parent = Node("IdList", parent = parent)
-        print ("token",self.tokenActual.token, "inF", inFuncion, "isP", isParam)
         if self.tokenActual.num == self.ID:
             scope=self.tokenActual.scope
             if isParam:
-                scope+=1
-                self.tokenActual.scope+=1                        
-            info = {'id':self.tokenActual.token,'type':'None','scope':scope, 'inFunction':inFuncion, 'isAlive':True}
-            if not self.variableDeclarada(self.tokenActual):          
-                self.tablaVariables.append(info)
-            else:                
-                self.errorVariable(self.tokenActual.token,self.tokenActual.linea, self.tokenActual.posicion, declarada=True)
+                scope+=1                        
+            info = {'id':self.tokenActual.token,'type':'None','scope':scope, 'inFunction':inFuncion}
+            self.tablaVariables.append(info)
+            # if not self.variableDeclarada(self.tokenActual):          
+            #     self.tablaVariables.append(info)
+            # else:                
+            #     self.errorVariable(self.tokenActual.token,self.tokenActual.linea, self.tokenActual.posicion, declarada=True)
             self.consume(self.ID, parent)                
             numIds= self.IdListCount(parent, 1, isParam, inFuncion)
             
@@ -679,7 +650,6 @@ class Aplicacion:
             self.errorParser([self.ID])
     def IdListCount(self, parent, numIds, isParam=False, inFuncion = False):
         parent = Node("IdListCont", parent = parent)
-        print ("token",self.tokenActual.token, "inF", inFuncion, "isP", isParam)
         if self.tokenActual.num == self.PUNTOYCOMA:
             Node("ε", parent)               
             return numIds
@@ -687,14 +657,13 @@ class Aplicacion:
             self.consume(self.COMA, parent)
             scope=self.tokenActual.scope
             if isParam:
-                scope+=1                
-                self.tokenActual.scope+=1         
-            info = {'id':self.tokenActual.token,'type':'None','scope':scope, 'inFunction':inFuncion, 'isAlive':True}     
-            #self.tablaVariables.append(info)
-            if not self.variableDeclarada(self.tokenActual):
-                self.tablaVariables.append(info)
-            else:                
-                self.errorVariable(self.tokenActual.token,self.tokenActual.linea, self.tokenActual.posicion, declarada=True)
+                scope+=1                         
+            info = {'id':self.tokenActual.token,'type':'None','scope':scope, 'inFunction':inFuncion}     
+            self.tablaVariables.append(info)
+            # if not self.variableDeclarada(self.tokenActual):
+            #     self.tablaVariables.append(info)
+            # else:                
+            #     self.errorVariable(self.tokenActual.token,self.tokenActual.linea, self.tokenActual.posicion, declarada=True)
             self.consume(self.ID, parent)
             numIds+=1
             return self.IdListCount(parent, numIds, isParam,inFuncion)
@@ -707,7 +676,7 @@ class Aplicacion:
     def ParamList(self, parent):
         parent = Node("ParamList", parent = parent)
         if self.tokenActual.num == self.ID:
-            numIds= self.IdList(parent, isParam=True, inFuncion = True) #regresa el numero de ids que se declararon            
+            numIds= self.IdList(parent, isParam=True) #regresa el numero de ids que se declararon            
             return numIds
         elif self.tokenActual.num == self.PAR_DER:
             Node("ε", parent)           
@@ -908,25 +877,19 @@ class Aplicacion:
     def StmtFactorizado(self, parent, id ):        
         parent = Node("StmtFactorizado", parent=parent)
         if self.tokenActual.num == self.PAR_IZQ:
-            if not self.funcionDeclarada(id):
-                self.errorVariable(id.token, id.linea, id.posicion, False)
+            # if not self.funcionDeclarada(id):
+            #     self.errorVariable(id.token, id.linea, id.posicion, False)
             self.consume(self.PAR_IZQ,parent)
             self.ExprList(parent)
             self.consume(self.PAR_DER,parent)
             self.consume(self.PUNTOYCOMA,parent)
             
         elif self.tokenActual.num == self.OP_ASSIGN:
-            if not self.variableDeclarada(id):
-                self.errorVariable(id.token, id.linea, id.posicion, False)
+            # if not self.variableDeclarada(id):
+            #     self.errorVariable(id.token, id.linea, id.posicion, False)
             self.consume(self.OP_ASSIGN,parent)
             tipo = self.Expr(parent)
-            infoId = self.buscarInfo(id)
-            if tipo is not None:
-                if infoId['type'] is 'None':
-                    self.asignarTipoVar(id.token, tipo)
-                elif tipo != infoId['type']:
-                    self.error(self.tokenActual.linea, self.tokenActual.posicion-1,"Tipo de variable y dato incompatibles")
-
+            self.asignarTipoVar(id.token, tipo)
             self.consume(self.PUNTOYCOMA,parent)
         else:
             self.errorParser([self.PAR_IZQ,self.OP_ASSIGN])
@@ -935,11 +898,12 @@ class Aplicacion:
         parent = Node("StmtIncr", parent=parent)
         if self.tokenActual.num == self.INC:
             self.consume(self.INC,parent)
-            if self.tokenActual.num == self.ID:                
-                if self.variableDeclarada(self.tokenActual):
-                    self.consume(self.ID,parent)
-                else: 
-                    self.errorVariable(self.tokenActual.token, self.tokenActual.linea, self.tokenActual.posicion, False)
+            if self.tokenActual.num == self.ID:
+                self.consume(self.ID,parent)
+                # if self.variableDeclarada(self.tokenActual):
+                # 
+                # else: 
+                #     self.errorVariable(self.tokenActual.token, self.tokenActual.linea, self.tokenActual.posicion, False)
                 self.consume(self.PUNTOYCOMA,parent)
             else:
                 self.errorParser([self.ID])
@@ -952,11 +916,11 @@ class Aplicacion:
             self.consume(self.DEC,parent)
             if self.tokenActual.num != self.ID:
                 self.errorParser([self.ID])
-            
-            if self.variableDeclarada(self.tokenActual):
-                self.consume(self.ID,parent)
-            else: 
-                self.errorVariable(self.tokenActual.token, self.tokenActual.linea, self.tokenActual.posicion, False)        
+            self.consume(self.ID,parent)
+            # if self.variableDeclarada(self.tokenActual):
+            # 
+            # else: 
+            #     self.errorVariable(self.tokenActual.token, self.tokenActual.linea, self.tokenActual.posicion, False)        
             self.consume(self.PUNTOYCOMA,parent)
         else:
             self.errorParser([self.DEC])
@@ -1633,8 +1597,6 @@ class Aplicacion:
     def ExprPrimary(self,parent):        
         parent= Node("ExprPrimary",parent=parent)
         if self.tokenActual.num == self.ID:
-             if not self.variableDeclarada(self.tokenActual):
-                self.errorVariable(self.tokenActual.token, self.tokenActual.linea,self.tokenActual.posicion, False)
              self.consume(self.ID,parent)
              self.ExprPrimaryFact(parent)
         elif self.tokenActual.num == self.PAR_IZQ:
